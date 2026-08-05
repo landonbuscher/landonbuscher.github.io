@@ -1,0 +1,274 @@
+/* ============================================================
+   tokens
+   ============================================================ */
+:root {
+    --paper: #fcfcfa;
+    --ink: #16181b;
+    --muted: #6e7278;
+    --accent: #1f4fa8;
+    --fill: rgba(22, 24, 27, 0.045); /* code block / inline code wash */
+    --rule: rgba(22, 24, 27, 0.13);
+
+    --prose: "Iowan Old Style", Charter, Georgia, Cambria, serif;
+    --meta: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+    --measure: 34rem; /* prose column */
+    --wide: 48rem; /* figures, code, anything that needs room */
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --paper: #121316;
+        --ink: #e6e6e2;
+        --muted: #8a8e94;
+        --accent: #8fb2f0;
+        --fill: rgba(230, 230, 226, 0.06);
+        --rule: rgba(230, 230, 226, 0.15);
+    }
+}
+
+/* ============================================================
+   base
+   ============================================================ */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 4.5rem 1.5rem 6rem;
+    background: var(--paper);
+    color: var(--ink);
+    font: 400 1.0625rem/1.65 var(--prose);
+    -webkit-text-size-adjust: 100%;
+}
+
+/* content grid: everything sits in the prose column unless it opts out */
+main {
+    display: grid;
+    grid-template-columns: 1fr min(var(--measure), 100%) 1fr;
+}
+main > * {
+    grid-column: 2;
+}
+
+.wide {
+    grid-column: 1 / -1;
+    width: min(var(--wide), 100%);
+    justify-self: center;
+}
+
+p {
+    margin: 0 0 1rem;
+}
+p:last-child {
+    margin-bottom: 0;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+a:hover {
+    border-bottom-color: var(--accent);
+}
+a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+}
+
+/* ============================================================
+   headings
+   ============================================================ */
+h1 {
+    font-size: 1.375rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.4rem;
+}
+
+h2 {
+    font-size: 1.1875rem;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    margin: 2.75rem 0 0.6rem;
+}
+
+h3 {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    margin: 2rem 0 0.4rem;
+}
+
+/* small mono label — used for section markers, not document structure */
+.eyebrow {
+    font: 500 0.72rem/1 var(--meta);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 1.5rem;
+}
+
+/* ============================================================
+   home page
+   ============================================================ */
+.tagline {
+    margin: 0 0 1rem;
+    color: var(--muted);
+}
+
+.links {
+    font: 400 0.8125rem/1.5 var(--meta);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.1rem;
+}
+
+section {
+    margin-top: 3.5rem;
+}
+
+.entry {
+    margin-bottom: 1.75rem;
+}
+.entry:last-child {
+    margin-bottom: 0;
+}
+
+.entry-title {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    margin: 0 0 0.15rem;
+}
+
+.entry-date {
+    font: 400 0.75rem/1 var(--meta);
+    color: var(--muted);
+    display: block;
+    margin-bottom: 0.35rem;
+}
+
+.entry-dek {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.9375rem;
+}
+
+/* ============================================================
+   article
+   ============================================================ */
+.back {
+    font: 400 0.8125rem/1 var(--meta);
+    display: inline-block;
+    margin-bottom: 2.5rem;
+}
+
+.article-header {
+    margin-bottom: 2.5rem;
+}
+
+.article-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.6rem;
+}
+
+.article-meta {
+    font: 400 0.75rem/1.5 var(--meta);
+    color: var(--muted);
+    margin: 0;
+}
+
+.lede {
+    font-size: 1.125rem;
+    color: var(--muted);
+    margin-bottom: 2rem;
+}
+
+/* --- code ------------------------------------------------- */
+code {
+    font-family: var(--meta);
+    font-size: 0.875em;
+    background: var(--fill);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+}
+
+pre {
+    font-family: var(--meta);
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    background: var(--fill);
+    padding: 1rem 1.1rem;
+    border-radius: 4px;
+    margin: 1.75rem 0;
+    overflow-x: auto; /* long lines scroll, never wrap */
+    tab-size: 4;
+}
+pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+}
+
+/* --- figures ---------------------------------------------- */
+figure {
+    margin: 2.25rem 0;
+}
+
+figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 3px;
+}
+
+figcaption {
+    font: 400 0.75rem/1.5 var(--meta);
+    color: var(--muted);
+    margin-top: 0.7rem;
+}
+
+/* --- lists ------------------------------------------------- */
+ul,
+ol {
+    padding-left: 1.25rem;
+    margin: 0 0 1rem;
+}
+li {
+    margin-bottom: 0.4rem;
+}
+
+/* --- aside ------------------------------------------------- */
+.note {
+    border-left: 2px solid var(--rule);
+    padding-left: 1.1rem;
+    margin: 1.75rem 0;
+    color: var(--muted);
+    font-size: 0.9375rem;
+}
+
+/* --- footnotes --------------------------------------------- */
+.footnotes {
+    margin-top: 3.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+/* ============================================================
+   small screens
+   ============================================================ */
+@media (max-width: 34rem) {
+    body {
+        padding: 3rem 1.25rem 4rem;
+    }
+    .article-title {
+        font-size: 1.5rem;
+    }
+}
