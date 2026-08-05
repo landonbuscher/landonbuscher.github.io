@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>What a stationary gyroscope actually reports — Landon</title>
+        <meta
+            name="description"
+            content="A stationary gyro never reads zero. Characterization is how you learn how wrong it is, and how fast that gets worse."
+        />
+        <link rel="stylesheet" href="/style.css" />
+    </head>
+
+    <body>
+        <main>
+            <a class="back" href="/">← index</a>
+
+            <header class="article-header">
+                <h1 class="article-title">
+                    What a stationary gyroscope actually reports
+                </h1>
+                <p class="article-meta">
+                    2026-08-05 · LSM6DSOX, Allan variance
+                </p>
+            </header>
+
+            <p class="lede">
+                A stationary gyro never reads zero. Characterization is how you
+                learn how wrong it is, and how fast that gets worse.
+            </p>
+
+            <p>
+                I don't think we stop to appreciate the electronic quasi-magic
+                happening all around us enough. Before starting my journey in
+                embedded programming, to say I took the inner workings of
+                computers for granted would be an understatement. Chief among
+                these quasi-magical activities is the ability to turn ones and
+                zeroes into a physical number that can be used in a control
+                system to represent some real-world quantity.
+            </p>
+
+            <p>
+                The fact that there is a little mass measured in micrograms
+                sitting inside a MEMS gyroscope, and that it can somehow measure
+                angular rate, is a truly mind-boggling feat to try to wrap your
+                head around. But despite this little mass' best efforts, its raw
+                output is rather unreliable, and it is the role of embedded
+                software engineers to characterize and calibrate these sensors
+                to make their output less erroneous.
+            </p>
+
+            <h2>Sensor characterization</h2>
+
+            <p>
+                Sensor characterization is the process of identifying the
+                deviation between the expected output of a sensor and its raw
+                output, and attributing parts of that deviation to different
+                sources of error. In a gyroscope the premise is simple: if the
+                part is completely stationary, you would expect every axis to
+                report zero motion for the entire lifespan of the program. Alas,
+                due to the economics of engineering, a perfectly calibrated
+                gyroscope is a lost cause, and several factors contribute to
+                spurious output.
+            </p>
+
+            <p>
+                Characterization is not an optional step, and especially not for
+                gyroscopes — skipped, reported values can wander as far as 30
+                degrees from truth in minutes.
+            </p>
+
+            <h2>Sources of error</h2>
+
+            <p>In characterizing a gyroscope, we are looking to identify:</p>
+
+            <ul>
+                <li>Offset bias</li>
+                <li>Bias repeatability</li>
+                <li>Angular random walk</li>
+                <li>Rate random walk</li>
+                <li>Bias instability</li>
+            </ul>
+
+            <h3>Offset bias</h3>
+
+            <p>
+                This is the simplest source of error to correct for. If your
+                gyroscope is perfectly stationary, the mean of each axis' output
+                should be zero. If it isn't when the gyro first starts, you can
+                take the mean of the raw output and subtract it from all future
+                outputs.
+            </p>
+
+            <pre><code>corrected_output = raw_output - constant_bias</code></pre>
+
+            <h3>Bias repeatability</h3>
+
+            <p>
+                Offset bias is not perfectly constant — it changes slightly
+                during each run of a program, and it also changes from run to
+                run. That run-to-run variation is bias repeatability: a measure
+                of how much the offset bias changes each time you power on the
+                gyroscope. To correct for it, the offset must be measured and
+                subtracted at every startup during a calibration phase, with the
+                gyroscope held perfectly stationary.
+            </p>
+
+            <h3>Angular random walk</h3>
+
+            <p>
+                The raw output of a gyroscope — or any sensor, for that matter —
+                is never completely steady. White noise causes the reading to
+                jitter up and down rapidly, and that movement is mostly random.
+                But when you integrate angular rate to find an angle, the sum of
+                that white noise causes the angle to wander over time. Your
+                angle reading performs a random walk away from the true value.
+                An Allan variance analysis, explained below, quantifies this
+                noise and its impact.
+            </p>
+
+            <h3>Rate random walk</h3>
+
+            <p>
+                Bias repeatability measures run-to-run variation; rate random
+                walk measures the in-run variation — how the constant bias
+                drifts over the life of a single program. The offset, like the
+                integrated angle, performs a random walk, driven primarily by
+                environmental and complicated mechanical processes. Because of
+                this, confidence in a startup-calibrated reading should decrease
+                over time. Like angular random walk, it does not gravitate
+                toward any particular value.
+            </p>
+
+            <p>
+                The difference is the underlying noise. Angular random walk
+                comes from white noise — rapidly changing, clearly visible
+                sample-to-sample. Rate random walk comes from a much slower
+                noise called Brownian noise. Rate random walk itself cannot be
+                corrected for, since it is caused by unpredictable mechanical
+                factors, though you can mitigate it with filters.
+            </p>
+
+            <h3>Bias instability</h3>
+
+            <p>
+                Angular random walk is <em>helped</em> by averaging: take the
+                mean of increasingly large groups of samples and compare
+                adjacent groups, and the difference between them shrinks as
+                white noise gets averaged away. Rate random walk is
+                <em>hurt</em> by averaging: keep growing the groups and the
+                difference starts to grow again as environmental and mechanical
+                drift shows up in your averages.
+            </p>
+
+            <p>
+                In between the two is a region where averaging over larger
+                samples neither helps nor hurts — the noise between adjacent
+                groups is identical. That is the period of bias instability,
+                where flicker noise lives: a type of noise sitting between white
+                and Brownian that can never be completely averaged away. It will
+                make more sense after the Allan variance.
+            </p>
+
+            <h2>The Allan variance</h2>
+
+            <p>
+                Imagine a six-hour sample of raw, perfectly stationary gyroscope
+                data collected at 100 Hz — one sample every 10 milliseconds. We
+                want to identify two things: how the readings change in the
+                short term, and how they change in the long term.
+            </p>
+
+            <p>
+                Start by splitting the data into groups of 50 ms and averaging
+                their values. The data is quite volatile here — with only five
+                readings per group, white noise heavily affects each average, so
+                comparing one group to its neighbors will likely show a large
+                difference.
+            </p>
+
+            <p>
+                So add more data to the buckets by growing them to 10 s. White
+                noise now has a much smaller effect on each average, and
+                adjacent groups land much closer together as the white noise
+                gets averaged out. Graphed, you would reason that as group size
+                increases, the deviation between adjacent groups must decrease.
+            </p>
+
+            <p>
+                There comes a point, however, where making the groups larger no
+                longer affects the deviation between adjacent pairs at all. The
+                groups are now sized such that white noise is no longer visible.
+                On the graph, this is flat: group size increases, deviation
+                stays constant.
+            </p>
+
+            <p>
+                Take it one step further and make the groups very large — say
+                3000 s. Certainly there is no white noise left. But now the
+                offset bias has begun to drift between groups. This is the
+                period of rate random walk, and the graph turns back upward: as
+                group size continues to increase, the deviation between adjacent
+                groups begins to grow.
+            </p>
+
+            <p>That is an Allan deviation plot, and it looks like this:</p>
+
+            <figure class="wide">
+                <img
+                    src="/assets/allan.png"
+                    alt="Allan deviation plot for the gyroscope X axis, log-log. Deviation falls from roughly 0.4 at tau = 0.01 s to a minimum near 1e-3 around tau = 2000 s, then rebounds."
+                />
+                <figcaption>
+                    Fig. 1 — X-axis Allan deviation from an overnight stationary
+                    recording. Downward slope (angular random walk), minimum
+                    (bias instability), upward slope (rate random walk).
+                </figcaption>
+            </figure>
+
+            <p>
+                This is a graph I produced after recording raw data from my
+                gyroscope overnight. On the left, the y-axis is labeled Allan
+                deviation — the root mean square of the differences of all
+                adjacent pairs, scaled by 1/√2. Put simply, it is a measure of
+                how much, on average, adjacent pairs differ. Along the x-axis is
+                tau, in seconds: the size of the buckets we kept adjusting. The
+                shape is exactly what was described — a downward slope as bucket
+                size increases, a flat period (or, in this case, a minimum), and
+                a rebound where deviation starts to climb again.
+            </p>
+
+            <p>
+                The downward slope on the left is the period of angular random
+                walk: the values of tau where white noise dominates the
+                integrated angle. Since white noise changes rapidly, averaging
+                it out with larger tau is very effective.
+            </p>
+
+            <p>
+                The upward slope on the right is the period of rate random walk.
+                Rate random walk is primarily a measure of environmental and
+                mechanical change, and that is not a quick process. So as tau
+                gets sufficiently large, we actually see adjacent groups start
+                to drift apart again — each group is now so large that they have
+                different biases.
+            </p>
+
+            <p>
+                The minimum is the period of bias instability, sitting between
+                the two. Tau is big enough that you can no longer see angular
+                random walk — though, importantly, it is still there — but not
+                so large that rate random walk has appeared. It is the exact
+                point where the marginal benefit of averaging equals the
+                marginal cost, to think about it economically.
+            </p>
+
+            <h3>Where the noise actually comes from</h3>
+
+            <p>
+                I found bias instability the hardest of the bunch to understand,
+                so it is worth walking through the underlying noise theory.
+                Angular random walk, rate random walk, and bias instability are
+                all the result of noise in the raw gyroscope output, but each
+                comes from a different type of noise.
+            </p>
+
+            <p>
+                White noise is the easy one: it moves up and down rapidly and
+                becomes visible with smaller averages — this is the noise
+                responsible for angular random walk. Brownian noise moves up and
+                down very slowly and becomes visible with larger averages — this
+                is the noise responsible for rate random walk. In the middle is
+                flicker noise, which is responsible for bias instability.
+            </p>
+
+            <p>
+                All three are present at every frequency; they only become
+                visible at certain average sizes. White noise gets averaged away
+                when you take longer averages. Brownian noise stays hidden if
+                you take shorter averages, though it is still there. And since
+                flicker noise sits in the middle, you will always have some that
+                is too fast to average away and some too slow to have shown up
+                yet. That is why bias instability is a flat line — no matter how
+                you adjust the average size, you remove exactly as much noise as
+                you reveal.
+            </p>
+
+            <div class="note">
+                You will notice bias repeatability never came up in the Allan
+                deviation analysis. By definition it cannot: it is the variation
+                in bias <em>between</em> runs, and the plot only ever depicts a
+                single run.
+            </div>
+
+            <h2>What the constants are for</h2>
+
+            <p>
+                From this plot we can read off N (angular random walk) at tau =
+                1, K (rate random walk) at tau = 3, and B (bias instability) at
+                the minimum, divided by a constant of 0.664.<sup
+                    ><a href="#fn1" id="ref1">1</a></sup
+                >
+                These are the constants you plug into a filter to quantify how
+                much noise is present in the gyroscope.
+            </p>
+
+            <div class="note">
+                These should be read off fitted lines, not the raw curve. The
+                raw curve at a single tau carries the estimation noise of that
+                one bucket size; the fit uses the whole slope.
+            </div>
+
+            <p>
+                With them you can finally tell a filter how much to trust your
+                gyroscope. N describes how noisy any single reading is, K
+                describes how quickly the startup calibration goes stale, and B
+                tells you the accuracy floor of the part. They let a Kalman
+                filter weigh the gyro against other sensors instead of guessing.
+            </p>
+
+            <p>
+                Controlling this little vibrating mass starts with knowing
+                exactly how much to believe it — and that is what sensor
+                characterization is for.
+            </p>
+
+            <div class="footnotes">
+                <p id="fn1">
+                    1. The 0.664 comes from the relationship between the flicker
+                    noise floor and the Allan deviation minimum.
+                    <a href="#ref1">↩</a>
+                </p>
+            </div>
+        </main>
+    </body>
+</html>
