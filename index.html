@@ -6,7 +6,7 @@
         <title>Landon Buscher</title>
         <meta
             name="description"
-            content="Bare-metal STM32 firmware, flight control, and sensor fusion. Writeups and projects by Landon Buscher."
+            content="Bare-metal firmware, flight control, and sensor fusion. Writeups and projects by Landon Buscher."
         />
         <link rel="stylesheet" href="/style.css" />
     </head>
@@ -16,8 +16,9 @@
             <header>
                 <h1>Landon Buscher</h1>
                 <p class="tagline">
-                    Computer engineering at Mizzou. Bare-metal firmware, flight
-                    control, sensor fusion, and more.
+                    Computer engineering at Mizzou. I'm interested in bare-metal
+                    firmware, flight control systems, sensor fusion, and
+                    aerospace.
                 </p>
                 <nav class="links">
                     <a href="https://github.com/landonbuscher">github</a>
@@ -35,20 +36,26 @@
                 <article class="entry">
                     <h2 class="entry-title">
                         <a href="/writing/sensor-characterization.html">
-                            What a stationary gyroscope actually reports
+                            Why Sensor Characterization Is So Important
                         </a>
                     </h2>
                     <span class="entry-date">2026-08-05</span>
                     <p class="entry-dek">
-                        A stationary gyro never reads zero. Characterization is
-                        how you learn how wrong it is, and how fast that gets
-                        worse.
+                        The causes of erroneous raw gyroscope data and how it
+                        can be corrected
                     </p>
                 </article>
             </section>
 
-            <section>
+            <section class="bio">
                 <p class="eyebrow">About</p>
+                <img
+                    class="avatar"
+                    src="/assets/headshot.png"
+                    alt="Landon Buscher"
+                    width="400"
+                    height="400"
+                />
                 <p>
                     I'm a sophomore computer engineering student at Mizzou
                     working on embedded flight control systems and firmware,
@@ -57,7 +64,7 @@
                 </p>
                 <p>
                     Right now I am working on writing quadcopter flight
-                    controller firmware on an STM32F401 from bare-metal &mdash;
+                    controller firmware on an STM32F401 from bare-metal -
                     register-level peripheral drivers, sensor fusion, attitude
                     estimation, and PID control.
                 </p>

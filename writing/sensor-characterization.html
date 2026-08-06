@@ -3,11 +3,8 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>What a stationary gyroscope actually reports — Landon</title>
-        <meta
-            name="description"
-            content="A stationary gyro never reads zero. Characterization is how you learn how wrong it is, and how fast that gets worse."
-        />
+        <title>Sensor Characterization</title>
+        <meta name="description" content="Sensor Characterization" />
         <link rel="stylesheet" href="/style.css" />
     </head>
 
@@ -17,320 +14,324 @@
 
             <header class="article-header">
                 <h1 class="article-title">
-                    What a stationary gyroscope actually reports
+                    Why Sensor Characterization Is So Important
                 </h1>
                 <p class="article-meta">
-                    2026-08-05 · LSM6DSOX, Allan variance
+                    2026-08-06 · Gyroscopes, Sensors, Sensor Characterization,
+                    Allan Variance, Noise
                 </p>
             </header>
 
             <p class="lede">
-                A stationary gyro never reads zero. Characterization is how you
-                learn how wrong it is, and how fast that gets worse.
+                The causes of erroneous raw gyroscope data and how it can be
+                corrected
             </p>
 
             <p>
-                I don't think we stop to appreciate the electronic quasi-magic
-                happening all around us enough. Before starting my journey in
-                embedded programming, to say I took the inner workings of
-                computers for granted would be an understatement. Chief among
-                these quasi-magical activities is the ability to turn ones and
-                zeroes into a physical number that can be used in a control
-                system to represent some real-world quantity.
+                I don’t think we stop to appreciate the electronic quasi-magic
+                that is happening all around us enough. Before starting my
+                journey in embedded programming, to say I took for granted the
+                inner workings of computers would be an understatement. Chief
+                among these quasi-magical activities is the ability to turn ones
+                and zeroes into a physical number that can be used in control
+                systems to represent some real-world quantity.
             </p>
 
             <p>
                 The fact that there is a little mass measured in micrograms
                 sitting inside a MEMS gyroscope, and that it can somehow measure
-                angular rate, is a truly mind-boggling feat to try to wrap your
-                head around. But despite this little mass' best efforts, its raw
+                angular rate, is a truly mind-boggling feat to try and wrap your
+                head around. But despite this little mass’ best efforts, its raw
                 output is rather unreliable, and it is the role of embedded
                 software engineers to characterize and calibrate these sensors
                 to make their output less erroneous.
             </p>
 
-            <h2>Sensor characterization</h2>
+            <h2>Sensor Characterization</h2>
 
             <p>
                 Sensor characterization is the process of identifying the
                 deviation between the expected output of a sensor and its raw
-                output, and attributing parts of that deviation to different
-                sources of error. In a gyroscope the premise is simple: if the
-                part is completely stationary, you would expect every axis to
-                report zero motion for the entire lifespan of the program. Alas,
-                due to the economics of engineering, a perfectly calibrated
-                gyroscope is a lost cause, and several factors contribute to
-                spurious output.
+                output, and attributing parts of this deviation to different
+                sources of error. In a gyroscope, this process is quite simple;
+                if a gyroscope is completely stationary, one would expect all
+                axes to report zero motion throughout the lifespan of the
+                program. Alas, due to the economics of engineering, creating
+                such a perfectly calibrated gyroscope is a lost cause. As such,
+                one can expect several factors to contribute to spurious output.
+                Sensor characterization is not an optional step, and especially
+                so for gyroscopes – if skipped, reported values can wander as
+                far as 30 degrees away from the true value in minutes.
             </p>
+
+            <h2>Sources of Error</h2>
 
             <p>
-                Characterization is not an optional step, and especially not for
-                gyroscopes — skipped, reported values can wander as far as 30
-                degrees from truth in minutes.
+                In characterizing a gyroscope, we are looking to identify the
+                following:
             </p>
 
-            <h2>Sources of error</h2>
-
-            <p>In characterizing a gyroscope, we are looking to identify:</p>
-
             <ul>
-                <li>Offset bias</li>
-                <li>Bias repeatability</li>
-                <li>Angular random walk</li>
-                <li>Rate random walk</li>
-                <li>Bias instability</li>
+                <li>Offset Bias</li>
+                <li>Bias Repeatability</li>
+                <li>Angular Random Walk</li>
+                <li>Rate Random Walk</li>
+                <li>Bias Instability</li>
             </ul>
 
-            <h3>Offset bias</h3>
+            <h3>Offset Bias</h3>
 
             <p>
                 This is the simplest source of error to correct for. If your
-                gyroscope is perfectly stationary, the mean of each axis' output
-                should be zero. If it isn't when the gyro first starts, you can
-                take the mean of the raw output and subtract it from all future
-                outputs.
+                gyroscope is perfectly stationary, the mean of each axis’ output
+                should be zero. If this is not the case when your gyroscope
+                first starts, you can simply take the mean of the raw output and
+                subtract it from all future outputs. This is known as an offset
+                bias, and can be corrected for with a simple subtraction.
             </p>
 
             <pre><code>corrected_output = raw_output - constant_bias</code></pre>
 
-            <h3>Bias repeatability</h3>
+            <h3>Bias Repeatability</h3>
 
             <p>
-                Offset bias is not perfectly constant — it changes slightly
+                Offset bias is not perfectly constant – it changes slightly
                 during each run of a program, and it also changes from run to
-                run. That run-to-run variation is bias repeatability: a measure
-                of how much the offset bias changes each time you power on the
-                gyroscope. To correct for it, the offset must be measured and
-                subtracted at every startup during a calibration phase, with the
-                gyroscope held perfectly stationary.
+                run. This run-to-run variation is called bias repeatability, and
+                it is a measure of how much the offset bias changes each time
+                you power on the gyroscope. To correct for this, the offset bias
+                must be measured and subtracted every time the program starts up
+                during a calibration phase. During this time, the gyroscope
+                should remain perfectly stationary.
             </p>
 
-            <h3>Angular random walk</h3>
+            <h3>Angular Random Walk</h3>
 
             <p>
-                The raw output of a gyroscope — or any sensor, for that matter —
-                is never completely steady. White noise causes the reading to
-                jitter up and down rapidly, and that movement is mostly random.
-                But when you integrate angular rate to find an angle, the sum of
-                that white noise causes the angle to wander over time. Your
-                angle reading performs a random walk away from the true value.
-                An Allan variance analysis, explained below, quantifies this
-                noise and its impact.
+                The raw output of a gyroscope – or any sensor for that matter –
+                is never completely steady. There is white noise which causes
+                the reading to jitter up and down quite rapidly. This movement
+                is mostly random. However, when you integrate angular rate to
+                find the angle, this sum of white noise can over time cause the
+                angle to wander. This causes your angle reading to perform a
+                “random walk” away from the true value. By doing something
+                called an Allan variance analysis, which will be explained
+                momentarily, we can quantify this noise and its impact on
+                angular random walk.
             </p>
 
-            <h3>Rate random walk</h3>
+            <h3>Rate Random Walk</h3>
 
             <p>
-                Bias repeatability measures run-to-run variation; rate random
-                walk measures the in-run variation — how the constant bias
-                drifts over the life of a single program. The offset, like the
-                integrated angle, performs a random walk, driven primarily by
+                We learned in the bias repeatability section that offset bias is
+                not constant. While bias repeatability is a measure of the
+                run-to-run variations, rate random walk is a measure of the
+                in-run variations – how constant bias drifts over time. During
+                the program’s lifespan, the offset bias, like the integrated
+                angle, will perform a random walk. This is primarily due to
                 environmental and complicated mechanical processes. Because of
-                this, confidence in a startup-calibrated reading should decrease
-                over time. Like angular random walk, it does not gravitate
-                toward any particular value.
+                this, when you subtract the offset at the start of your program,
+                confidence in the reading should decrease over time due to rate
+                random walk. Also like angular random walk, rate random walk
+                does not gravitate towards a particular value – it is random.
+                While angular random walk is caused by white noise –
+                rapidly-changing noise clearly visible sample-to-sample – rate
+                random walk is caused by a much slower noise called Brownian
+                noise, which will be explained in greater depth later. Rate
+                random walk itself cannot be “corrected” for – it is caused by
+                unpredictable mechanical factors – though you can mitigate it
+                through filters.
             </p>
+
+            <h3>Bias Instability</h3>
 
             <p>
-                The difference is the underlying noise. Angular random walk
-                comes from white noise — rapidly changing, clearly visible
-                sample-to-sample. Rate random walk comes from a much slower
-                noise called Brownian noise. Rate random walk itself cannot be
-                corrected for, since it is caused by unpredictable mechanical
-                factors, though you can mitigate it with filters.
+                Angular random walk is <em>helped</em> by averaging – by taking
+                the mean of increasingly large groups of samples and comparing
+                to adjacent groups, the difference between them shrinks as white
+                noise gets averaged away. Rate random walk is <em>hurt</em> by
+                averaging – by continuing to average even larger groups, the
+                difference between them begins to grow larger as Brownian noise
+                in the form of environmental and mechanical factors begin to
+                show up in your averages. In between these two, there is a
+                region where averaging larger samples neither helps nor hurts –
+                the noise between them is identical. This is the period of bias
+                instability, which is where flicker noise lives. It is a type of
+                noise that sits between white and Brownian and can never be
+                completely averaged away. This will be explained further after
+                the Allan variance, where it will make more sense.
             </p>
 
-            <h3>Bias instability</h3>
-
-            <p>
-                Angular random walk is <em>helped</em> by averaging: take the
-                mean of increasingly large groups of samples and compare
-                adjacent groups, and the difference between them shrinks as
-                white noise gets averaged away. Rate random walk is
-                <em>hurt</em> by averaging: keep growing the groups and the
-                difference starts to grow again as environmental and mechanical
-                drift shows up in your averages.
-            </p>
-
-            <p>
-                In between the two is a region where averaging over larger
-                samples neither helps nor hurts — the noise between adjacent
-                groups is identical. That is the period of bias instability,
-                where flicker noise lives: a type of noise sitting between white
-                and Brownian that can never be completely averaged away. It will
-                make more sense after the Allan variance.
-            </p>
-
-            <h2>The Allan variance</h2>
+            <h2>Allan Variance</h2>
 
             <p>
                 Imagine a six-hour sample of raw, perfectly stationary gyroscope
-                data collected at 100 Hz — one sample every 10 milliseconds. We
-                want to identify two things: how the readings change in the
-                short term, and how they change in the long term.
+                data collected at a rate of 100 Hz – one sample every 10
+                milliseconds. We want to identify two things – how the readings
+                change in the short term, and how the readings change in the
+                long term.
             </p>
 
             <p>
-                Start by splitting the data into groups of 50 ms and averaging
-                their values. The data is quite volatile here — with only five
-                readings per group, white noise heavily affects each average, so
-                comparing one group to its neighbors will likely show a large
-                difference.
+                To do this, we can start by splitting the data into groups of
+                50ms and averaging their values. At this point, the data is
+                quite volatile – with only 5 readings per group, white noise
+                heavily affects the readings. If we were to compare one group to
+                its neighbors, it is likely that they are quite different.
             </p>
 
             <p>
-                So add more data to the buckets by growing them to 10 s. White
-                noise now has a much smaller effect on each average, and
-                adjacent groups land much closer together as the white noise
-                gets averaged out. Graphed, you would reason that as group size
-                increases, the deviation between adjacent groups must decrease.
+                So, let’s add more data to our buckets by increasing the size to
+                10s. At this point, white noise has a much smaller effect on our
+                average. Now if we compare adjacent groups, they are likely much
+                closer in value as the effect of white noise effectively gets
+                “averaged out”. If you were to imagine this as a graph, you
+                could reason that as the size of our groups increase, the
+                deviation between adjacent groups must decrease.
             </p>
 
             <p>
-                There comes a point, however, where making the groups larger no
-                longer affects the deviation between adjacent pairs at all. The
-                groups are now sized such that white noise is no longer visible.
-                On the graph, this is flat: group size increases, deviation
-                stays constant.
+                However, there comes a point where making our groups larger no
+                longer impacts the deviation between adjacent pairs at all. We
+                are at a point where the groups are sized such that the white
+                noise is no longer visible in our readings. Going back to our
+                graph, we can imagine that it is now flat – as the size of our
+                groups increase, the deviation between adjacent groups is now
+                constant.
             </p>
 
             <p>
-                Take it one step further and make the groups very large — say
-                3000 s. Certainly there is no white noise left. But now the
-                offset bias has begun to drift between groups. This is the
-                period of rate random walk, and the graph turns back upward: as
-                group size continues to increase, the deviation between adjacent
-                groups begins to grow.
+                But let’s take it one step further. Let’s make our groups very
+                large – say, 3000s. At this point, certainly we have no white
+                noise. But now we have a different concern – our offset bias has
+                begun to drift between our groups. This is the period of rate
+                random walk, and now we can imagine the graph going back up – as
+                we continue to increase the size of our groups, the deviation
+                between adjacent groups begins to increase.
             </p>
 
-            <p>That is an Allan deviation plot, and it looks like this:</p>
+            <p>This is an Allan deviation plot, and it looks like this:</p>
 
             <figure class="wide">
                 <img
                     src="/assets/allan.png"
-                    alt="Allan deviation plot for the gyroscope X axis, log-log. Deviation falls from roughly 0.4 at tau = 0.01 s to a minimum near 1e-3 around tau = 2000 s, then rebounds."
+                    alt="Log-log Allan deviation plot for the gyroscope X axis. The curve falls from the left, reaches a minimum, and rebounds on the right."
                 />
                 <figcaption>
-                    Fig. 1 — X-axis Allan deviation from an overnight stationary
-                    recording. Downward slope (angular random walk), minimum
-                    (bias instability), upward slope (rate random walk).
+                    Allan deviation plot from my gyroscope's X-axis
                 </figcaption>
             </figure>
 
             <p>
                 This is a graph I produced after recording raw data from my
-                gyroscope overnight. On the left, the y-axis is labeled Allan
-                deviation — the root mean square of the differences of all
-                adjacent pairs, scaled by 1/√2. Put simply, it is a measure of
-                how much, on average, adjacent pairs differ. Along the x-axis is
-                tau, in seconds: the size of the buckets we kept adjusting. The
-                shape is exactly what was described — a downward slope as bucket
-                size increases, a flat period (or, in this case, a minimum), and
-                a rebound where deviation starts to climb again.
+                gyroscope overnight. Looking at the graph, we can see some
+                familiar things. On the left, we can see the y-axis is labeled
+                “Allan Deviation” – this is the root mean square of differences
+                of all adjacent pairs, scaled by 1/√2. Put simply, it is a
+                measure of how much, on average, adjacent pairs differ. On the
+                bottom along the x-axis, we can see the label “tau”, measured in
+                seconds. This is the size of the buckets that we continued to
+                adjust. And by looking at the shape of the graph, we can see
+                exactly what was described – a downward slope as bucket size
+                increases, followed by a flat period (or, in this case, a
+                minimum) of the graph, and finally a rebound of the graph where
+                deviation starts to climb once again.
             </p>
 
             <p>
                 The downward slope on the left is the period of angular random
-                walk: the values of tau where white noise dominates the
-                integrated angle. Since white noise changes rapidly, averaging
-                it out with larger tau is very effective.
+                walk – the values of tau in which white noise dominates the
+                integrated angle. Since white noise is rapidly changing,
+                averaging it out with larger values of tau is very effective.
             </p>
 
             <p>
                 The upward slope on the right is the period of rate random walk.
-                Rate random walk is primarily a measure of environmental and
-                mechanical change, and that is not a quick process. So as tau
-                gets sufficiently large, we actually see adjacent groups start
-                to drift apart again — each group is now so large that they have
+                Remember how rate random walk is primarily a measure of
+                environmental and mechanical change – that is not a quick
+                process. Thus, as we make tau sufficiently large, we can
+                actually see the adjacent groups start to drift further apart
+                again. This is because each group is now so large that they have
                 different biases.
             </p>
 
             <p>
-                The minimum is the period of bias instability, sitting between
-                the two. Tau is big enough that you can no longer see angular
-                random walk — though, importantly, it is still there — but not
-                so large that rate random walk has appeared. It is the exact
+                The minimum of the graph is the period of bias instability. It
+                is the period in between angular random walk and rate random
+                walk. Tau is big enough that you can no longer see the angular
+                random walk (though, importantly, it is still there), but not so
+                large that we are now seeing rate random walk. This is the exact
                 point where the marginal benefit of averaging equals the
-                marginal cost, to think about it economically.
+                marginal cost of averaging, to think about it economically.
             </p>
-
-            <h3>Where the noise actually comes from</h3>
 
             <p>
                 I found bias instability the hardest of the bunch to understand,
-                so it is worth walking through the underlying noise theory.
-                Angular random walk, rate random walk, and bias instability are
-                all the result of noise in the raw gyroscope output, but each
-                comes from a different type of noise.
+                so to explain it better, I want to walk through the actual
+                underlying noise theory. Ultimately, angular random walk, rate
+                random walk, and bias instability are all a result of noise in
+                the raw gyroscope output, though there are different types of
+                noise, each responsible for a different source of error.
             </p>
 
             <p>
-                White noise is the easy one: it moves up and down rapidly and
-                becomes visible with smaller averages — this is the noise
+                White noise is the easy one; it moves up and down rapidly and it
+                becomes visible with smaller averages – this is the noise
                 responsible for angular random walk. Brownian noise moves up and
-                down very slowly and becomes visible with larger averages — this
-                is the noise responsible for rate random walk. In the middle is
-                flicker noise, which is responsible for bias instability.
+                down very slow, and it becomes visible with larger averages –
+                this is the noise responsible for rate random walk. In the
+                middle is flicker noise. This is the noise responsible for bias
+                instability.
             </p>
 
             <p>
-                All three are present at every frequency; they only become
-                visible at certain average sizes. White noise gets averaged away
-                when you take longer averages. Brownian noise stays hidden if
-                you take shorter averages, though it is still there. And since
-                flicker noise sits in the middle, you will always have some that
-                is too fast to average away and some too slow to have shown up
-                yet. That is why bias instability is a flat line — no matter how
-                you adjust the average size, you remove exactly as much noise as
-                you reveal.
+                All three types of noise are present at every frequency, though
+                they only become visible at certain average sizes. White noise
+                gets averaged away when you take longer averages. Brownian noise
+                stays hidden if you take shorter averages (though it is still
+                there, just not yet visible). And since flicker noise is in the
+                middle, you will always have some that is too fast to average
+                away, and some too slow that hasn’t shown up yet. This explains
+                why bias instability is a flat line - no matter how much you
+                adjust the average size, you remove exactly as much noise as you
+                reveal.
             </p>
 
             <div class="note">
                 You will notice bias repeatability never came up in the Allan
                 deviation analysis. By definition it cannot: it is the variation
                 in bias <em>between</em> runs, and the plot only ever depicts a
-                single run.
+                <em>single</em> run.
             </div>
 
-            <h2>What the constants are for</h2>
-
             <p>
-                From this plot we can read off N (angular random walk) at tau =
-                1, K (rate random walk) at tau = 3, and B (bias instability) at
-                the minimum, divided by a constant of 0.664.<sup
-                    ><a href="#fn1" id="ref1">1</a></sup
-                >
-                These are the constants you plug into a filter to quantify how
-                much noise is present in the gyroscope.
+                By looking at this Allan deviation plot, we can identify the
+                constant N (angular random walk) at tau = 1, K (rate random
+                walk) at tau = 3, and B (bias instability) at the minimum (and
+                divided by a constant, 0.664). These are constants that can be
+                plugged into a filter to quantify how much noise is present in
+                the gyroscope.
             </p>
 
             <div class="note">
-                These should be read off fitted lines, not the raw curve. The
-                raw curve at a single tau carries the estimation noise of that
-                one bucket size; the fit uses the whole slope.
+                It should be noted these constants should be read from fitted
+                lines and not the raw curve.
             </div>
 
             <p>
-                With them you can finally tell a filter how much to trust your
-                gyroscope. N describes how noisy any single reading is, K
-                describes how quickly the startup calibration goes stale, and B
-                tells you the accuracy floor of the part. They let a Kalman
-                filter weigh the gyro against other sensors instead of guessing.
+                With these constants, it is possible to tell a filter how much
+                to trust a gyroscope. N describes how noisy any single reading
+                is, K describes how quickly the startup calibration goes stale,
+                and B describes the accuracy floor of the gyroscope. They let a
+                Kalman filter weigh the gyro against other sensors instead of
+                guessing.
             </p>
 
             <p>
                 Controlling this little vibrating mass starts with knowing
-                exactly how much to believe it — and that is what sensor
+                exactly how much to believe it – and that is what sensor
                 characterization is for.
             </p>
-
-            <div class="footnotes">
-                <p id="fn1">
-                    1. The 0.664 comes from the relationship between the flicker
-                    noise floor and the Allan deviation minimum.
-                    <a href="#ref1">↩</a>
-                </p>
-            </div>
         </main>
     </body>
 </html>
